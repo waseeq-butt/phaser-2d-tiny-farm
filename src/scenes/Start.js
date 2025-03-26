@@ -43,6 +43,8 @@ export class Start extends Phaser.Scene
 
     create() // Start
     {
+        this.screenWidth = this.scale.gameSize.width;
+        this.screenHeight = this.scale.gameSize.width;
         this.isMoving = false;
         this.isInventoryVisible = false;
         this.patches = [];
@@ -61,16 +63,7 @@ export class Start extends Phaser.Scene
         this.dataManager = new DataSaveLoadManager(this);
 
         this.scale.on('resize', this.resizeGame, this);
-    }
-
-    resizeGame(gameSize) {
-        let width = gameSize.width;
-        let height = gameSize.height;
-
-        this.cameras.resize(width, height);  // Resize camera view
-        if (this.background) {
-            this.background.setSize(width, height);  // Resize background if needed
-        }
+        this.resizeGame(this.scale.gameSize); // Call it once on start
     }
 
     update() 
@@ -209,26 +202,26 @@ export class Start extends Phaser.Scene
         this.moneyContainer = this.add.container(100, 50, [this.moneyBG, this.moneyText]);
 
         // Create button
-        this.button = this.add.sprite(340, 200, 'openInventory').setScale(1.5).setInteractive().setVisible(false);
-        this.saveButton = this.add.sprite(1000, 50, 'saveData').setScale(1.5).setInteractive();
-        this.loadButton = this.add.sprite(1125, 50, 'loadData').setScale(1.5).setInteractive();
+        this.button = this.add.sprite(340, 200, 'openInventory').setInteractive().setVisible(false);
+        this.saveButton = this.add.sprite(1000, 50, 'saveData').setInteractive();
+        this.loadButton = this.add.sprite(1000, 125, 'loadData').setInteractive();
         
         // Create panel (hidden by default)
-        //this.panel = this.add.rectangle(640, 360, 256, 256, 0xfffff).setScale(1.5);
-        this.panel = this.add.sprite(640, 360, 'inventory').setScale(1.5);
+        this.panel = this.add.sprite(0, 0, 'inventory').setScale(1.5);
 
-        this.closeButton = this.add.text(800, 180, "X", { fontSize: "32px", fill: "#fff" })
+        this.closeButton = this.add.text(this.panel.width - 100, this.panel.y - 180, "X", { fontSize: "32px", fill: "#fff" })
             .setInteractive();
 
-        this.addTomatoSeedButton = this.add.sprite(520, 260, 'tomato').setInteractive();
+        this.addTomatoSeedButton = this.add.sprite(this.panel.x - 125, this.panel.y - 125, 'tomato').setInteractive();
+        this.addPotatoSeedButton = this.add.sprite(this.panel.x - 50, this.panel.y - 125, 'potato').setInteractive();
 
-        this.addPotatoSeedButton = this.add.sprite(620, 260, 'potato').setInteractive();
-
-        this.panelContainer = this.add.container(0, 0, [this.panel, this.closeButton, this.addTomatoSeedButton, this.addPotatoSeedButton]);
+        this.panelContainer = this.add.container(this.screenWidth / 2, this.screenHeight / 2, [this.panel, this.closeButton, this.addTomatoSeedButton, this.addPotatoSeedButton]);
         this.panelContainer.setVisible(false);
 
         //this.uiLayer.add([this.button, this.saveButton, this.loadButton, this.panel, this.addTomatoSeedButton, this.addPotatoSeedButton]);
         this.uiLayer.setDepth(100);
+
+        this.setUICoordinates(this.screenWidth, this.screenHeight);
 
         this.button.on("pointerdown", this.enableInventoryPanel, this);
         this.closeButton.on("pointerdown", this.disableInventoryPanel, this);
@@ -239,13 +232,33 @@ export class Start extends Phaser.Scene
         this.addPotatoSeedButton.on("pointerdown", this.onSelectPotatoSeeds, this);
     }
 
+    setUICoordinates(width, height)
+    {
+        this.button.setPosition(180, 200);
+        this.button.setScale(1.5);
+        this.saveButton.setPosition(width - 70, 50);
+        this.saveButton.setScale(1.5);
+        this.loadButton.setPosition(width - 70, 125);
+        this.loadButton.setScale(1.5);
+
+        this.panelContainer.setPosition(width / 2, height / 2);
+        this.panelContainer.setScale(Math.min(width, height) * 0.0015);
+    }
+
     setPlayer()
     {
+        let screenWidth = this.scale.width;
+        let screenHeight = this.scale.height;
+        
         console.log('Setting Player ...');
 
-        this.player = this.matter.add.sprite(640, 250, 'girl_idle', null, { label: 'player' });
+        this.player = this.matter.add.sprite(screenWidth / 2, screenHeight / 2, 'girl_idle', null, { label: 'player' });
         this.player.setFixedRotation();
         this.player.setSensor(false);
+        
+        let scaleFactor = Math.min(screenWidth / 800, screenHeight / 600);
+        this.player.setScale(scaleFactor);
+        this.player.setPosition(screenWidth / 2, screenHeight / 2);
 
         this.player.anims.create({
             key: 'walk',
@@ -262,38 +275,44 @@ export class Start extends Phaser.Scene
         });
     }
 
-    setBackground()
-    {
+    setBackground() {
         console.log('Setting Background ...');
 
-        this.background = this.add.rectangle(640, 360, 1280, 720, 0x55C233);
-        this.home = this.matter.add.sprite(640, 100, 'home', null, { label: 'home' }).setScale(2);
+        // Background covers full screen
+        this.background = this.add.rectangle(this.screenWidth / 2, this.screenHeight / 2, this.screenWidth, this.screenHeight, 0x55C233);
+
+        // Set the home sprite dynamically relative to the screen
+        let homeScale = Math.min(this.screenWidth, this.screenHeight) * 0.003; // Scale dynamically
+        //this.home = this.matter.add.sprite(this.screenWidth / 2, this.screenHeight * 0.15, 'home', null, { label: 'home' }).setScale(homeScale);
+        this.home = this.matter.add.sprite(this.screenWidth / 2, this.screenHeight * 0.15, 'home', null, { label: 'home' });
         this.home.setStatic(true);
 
+        // Patch grid positioning
+        let patchCenterX = this.screenWidth / 2;
+        let patchCenterY = this.screenHeight * 0.65;
+        let patchSize = Math.min(this.screenWidth, this.screenHeight) * 2; // Dynamically scale patch size
+        let spacingX = patchSize * 1.5;
+        let spacingY = patchSize * 1.5;
+
+        // Create main patch at center
         this.patchA2 = new Patch(this);
-        this.patchA2.createPatch(640, 450, 0, 0, 'patch', 'patch');
-        
-        
-        let spacing = 120; // Adjust the spacing as needed
+        this.patchA2.createPatch(patchCenterX, patchCenterY, patchSize, patchSize, 'patch', 'patch');
 
-        let positions = [
-            { x: -spacing, y: -spacing }, // Top-left
-            { x: 0,        y: -spacing }, // Top-center
-            { x: spacing,  y: -spacing }, // Top-right
-            { x: -spacing, y: 0 },        // Left
-            { x: spacing,  y: 0 },        // Right
-            { x: -spacing, y: spacing },  // Bottom-left
-            { x: 0,        y: spacing },  // Bottom-center
-            { x: spacing,  y: spacing }   // Bottom-right
-        ];
+        this.patches = [];
 
-        positions.forEach(offset => {
+        // Loop for surrounding patches
+        for (let row = -1; row <= 1; row++) {
+            for (let col = -1; col <= 1; col++) {
+                if (row === 0 && col === 0) continue; // Skip center patch
 
-            let patch = new Patch(this);
-            patch.createPatch(this.patchA2.getX(), this.patchA2.getY(), offset.x, offset.y, 'patch', 'patch');
+                let xOffset = col * spacingX;
+                let yOffset = row * spacingY;
 
-            this.patches.push(patch);
-        });
+                let patch = new Patch(this);
+                patch.createPatch(patchCenterX + xOffset, patchCenterY + yOffset, patchSize, patchSize, 'patch', 'patch');
+                this.patches.push(patch);
+            }
+        }
     }
 
     onCompleteSaveData()
@@ -351,7 +370,7 @@ export class Start extends Phaser.Scene
         if(this.selectedPatch != null)
         {
             let tomatoPlant = this.add.sprite(this.selectedPatch.getX(), this.selectedPatch.getY(), 'tomatoSeeds', { label: 'TomatoPlant' })
-            .setScale(3);
+            .setScale(this.selectedPatch.getObject().scaleX, this.selectedPatch.getObject().scaleY);
 
             this.selectedPatch.setPlantObject(tomatoPlant);
             this.selectedPatch.setPlantedSeed();
@@ -371,7 +390,7 @@ export class Start extends Phaser.Scene
         if(this.selectedPatch != null)
         {
             let potatoPlant = this.add.sprite(this.selectedPatch.getX(), this.selectedPatch.getY(), 'potatoSeeds', { label: 'PotatoPlant' })
-            .setScale(3)
+            .setScale(this.selectedPatch.getObject().scaleX, this.selectedPatch.getObject().scaleY)
 
             this.selectedPatch.setPlantObject(potatoPlant);
             this.selectedPatch.setPlantedSeed();
@@ -416,6 +435,52 @@ export class Start extends Phaser.Scene
             plantSprite.setTexture('tomatoPlantLvl3');
             patch.setReadyForHarvest();
         });
+    }
+
+    resizeGame(gameSize) {
+        if (!gameSize) return;
+
+        this.screenWidth = gameSize.width;
+        this.screenHeight = gameSize.height;
+
+        let scaleFactor = Math.min(this.screenWidth / 800, this.screenHeight / 600);
+        this.player.setScale(scaleFactor);
+        //this.player.setPosition(this.screenWidth / 2, this.screenHeight / 2);
+        this.player.setX(this.screenWidth / 2);
+
+        //this.cameras.resize(this.screenWidth, this.screenHeight);
+
+        // Resize and reposition the home sprite
+        //let homeScale = Math.min(this.screenWidth, this.screenHeight) * 0.003;
+        //this.home.setScale(homeScale);
+        this.home.setPosition(this.screenWidth / 2, this.screenHeight * 0.15);
+        this.home.setScale(2);
+
+        let patchCenterX = this.screenWidth / 2;
+        let patchCenterY = this.screenHeight * 0.65;
+        let patchSize = Math.min(this.screenWidth, this.screenHeight) * 0.6; // Resize patches dynamically
+        let spacingX = patchSize * 0.3;
+        let spacingY = patchSize * 0.3;
+
+        // Reposition and resize patches
+        this.patchA2.getObject().setPosition(patchCenterX, patchCenterY);
+        this.patchA2.getObject().setScale(patchSize / 100); // Adjust patch size dynamically
+
+        let index = 0;
+        for (let row = -1; row <= 1; row++) {
+            for (let col = -1; col <= 1; col++) {
+                if (row === 0 && col === 0) continue;
+
+                let xOffset = col * spacingX;
+                let yOffset = row * spacingY;
+
+                this.patches[index].getObject().setPosition(patchCenterX + xOffset, patchCenterY + yOffset);
+                this.patches[index].getObject().setScale(patchSize / 100);
+                index++;
+            }
+        }
+
+        this.setUICoordinates(this.screenWidth, this.screenHeight);
     }
 }
 
