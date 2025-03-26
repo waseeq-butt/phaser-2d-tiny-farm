@@ -59,6 +59,18 @@ export class Start extends Phaser.Scene
         this.cursors = this.input.keyboard.createCursorKeys();
 
         this.dataManager = new DataSaveLoadManager(this);
+
+        this.scale.on('resize', this.resizeGame, this);
+    }
+
+    resizeGame(gameSize) {
+        let width = gameSize.width;
+        let height = gameSize.height;
+
+        this.cameras.resize(width, height);  // Resize camera view
+        if (this.background) {
+            this.background.setSize(width, height);  // Resize background if needed
+        }
     }
 
     update() 
