@@ -331,12 +331,12 @@ export class Start extends Phaser.Scene
 
     onClickLoadData()
     {
-        this.dataManager.loadGameState((loadedData) => this.onCompleteLoadData(loadedData));
+        this.dataManager.loadGameDataFromJSONBin((loadedData) => this.onCompleteLoadData(loadedData));
     }
 
     onClickSaveData()
     {
-        this.dataManager.saveGameState(this.player, this.money, (savedData) => this.onCompleteSaveData(savedData));
+        this.dataManager.saveGameDataToJSONBin(this.player, this.money, (savedData) => this.onCompleteSaveData(savedData));
     }
 
     enableInventoryButton()
