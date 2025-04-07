@@ -443,6 +443,9 @@ export class Start extends Phaser.Scene
         this.screenWidth = gameSize.width;
         this.screenHeight = gameSize.height;
 
+        this.background.setSize(this.screenWidth, this.screenHeight);
+        this.background.setPosition(this.screenWidth / 2, this.screenHeight / 2);
+
         let scaleFactor = Math.min(this.screenWidth / 800, this.screenHeight / 600);
         this.player.setScale(scaleFactor);
         //this.player.setPosition(this.screenWidth / 2, this.screenHeight / 2);
